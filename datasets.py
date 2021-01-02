@@ -3,8 +3,26 @@ import torchvision
 from torchvision import transforms
 from utility import plot_images2
 from torch.utils.data import DataLoader
+import time
 
-from defaults import BATCH_SIZE, DATA_PATH, MNIST, FashionMNIST, CIFAR10
+from defaults import BATCH_SIZE, DATA_PATH, MNIST, FashionMNIST, CIFAR10, CelebA
+
+
+class OneClassIterableDataset(torch.utils.data.IterableDataset):
+    def __init__(self, dataset, label, batchsize=64):
+        self.dataset = dataset
+        self.label = label
+        self.batchsize = batchsize
+        self.size = len([(x,l) for (x,l) in dataset if l==label])
+    
+    def __iter__(self):
+        x = self.size // self.batchsize * self.batchsize
+        for tensor, label in self.dataset:
+            if label == self.label:
+                x -= 1
+                yield (tensor, label)
+            if x == 0:
+                break
 
 
 def getMNIST():
@@ -14,11 +32,7 @@ def getMNIST():
     train_set = torchvision.datasets.MNIST(
         root=DATA_PATH, train=True, download=True, transform=transform
     )
-
-    train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=BATCH_SIZE, shuffle=True,
-    )
-    return train_loader
+    return train_set
 
 
 def getCIFAR10():
@@ -28,11 +42,7 @@ def getCIFAR10():
     train_set = torchvision.datasets.CIFAR10(
         root=DATA_PATH, download=True, transform=transform
     )
-
-    train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=BATCH_SIZE, shuffle=True
-    )
-    return train_loader
+    return train_set
 
 
 def getCelebA():
@@ -42,11 +52,7 @@ def getCelebA():
     train_set = torchvision.datasets.CelebA(
         root=DATA_PATH, download=True, transform=transform
     )
-
-    train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=BATCH_SIZE, shuffle=True
-    )
-    return train_loader
+    return train_set
 
 
 def getFashionMNIST():
@@ -56,11 +62,7 @@ def getFashionMNIST():
     train_set = torchvision.datasets.FashionMNIST(
         root=DATA_PATH, transform=transform, download=True
     )
-
-    train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=BATCH_SIZE, shuffle=True
-    )
-    return train_loader
+    return train_set
 
 
 def getImageNet():
@@ -70,24 +72,40 @@ def getImageNet():
     train_set = torchvision.datasets.ImageNet(
         root=DATA_PATH, transform=transform
     )
+    return train_set
 
-    train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=BATCH_SIZE, shuffle=True
-    )
+_funs = {MNIST: getMNIST, FashionMNIST: getFashionMNIST, CIFAR10: getCIFAR10, CelebA: getCelebA}
+_data_sets = {name: None for name in _funs.keys()}
+
+
+def get_data_set(name):
+    assert name in _data_sets
+    if _data_sets[name] is None:
+        _data_sets[name] = _funs[name]()
+    return _data_sets[name]
+
+
+def get_data_loader(name, label=None):
+    train_set = get_data_set(name)
+    if label is None:
+        train_loader = torch.utils.data.DataLoader(
+            train_set, batch_size=BATCH_SIZE, shuffle=True,
+        )
+    else:
+        train_loader = torch.utils.data.DataLoader(
+            OneClassIterableDataset(train_set, label), batch_size=BATCH_SIZE, shuffle=False,
+        )
     return train_loader
 
-_funs = {MNIST: getMNIST, FashionMNIST: getFashionMNIST, CIFAR10: getCIFAR10}
-_data_loaders = {name: None for name in _funs.keys()}
-
-
-def get_data_loader(name):
-    assert name in _data_loaders
-    if _data_loaders[name] is None:
-        _data_loaders[name] = _funs[name]()
-    return _data_loaders[name]
-
+def downloader():
+    while True:
+        try:
+            d = getCelebA()
+            break
+        except:
+            print("hi")
+            time.sleep(600)
 
 if __name__ == "__main__":
-    d = getCelebA()
-    img = next(iter(d))
-    plot_images2(img[0])
+    d=get_data_set(CelebA)
+    print(len(d))

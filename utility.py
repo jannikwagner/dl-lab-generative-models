@@ -8,18 +8,24 @@ import math
 from defaults import CKPT_PATH, device
 
 
-def save_model(encoder, decoder, name, gen_images, compressed_images, pca_gen_images, labeled_pca_gen_images,
-               loss=None):
+def param_count(module):
+    return sum(torch.prod(x) for x in module.parameters())
+
+
+def delete_pth(path, files=("gen_images.pth", "compressed_images.pth", "pca_gen_images.pth", "labeled_pca_gen_images.pth")):
+    for file in files:
+        if os.path.isfile(os.path.join(path, file)):
+            os.remove(os.path.join(path, file))
+        
+
+
+def save_model(encoder, decoder, name, loss=None):
     os.makedirs(os.path.join(CKPT_PATH, name), exist_ok=True)
-    torch.save([epoch.to("cpu") for epoch in gen_images], os.path.join(CKPT_PATH, name, "gen_images.pth"))
-    torch.save([epoch.to("cpu") for epoch in compressed_images], os.path.join(CKPT_PATH, name, "compressed_images.pth"))
-    torch.save([epoch.to("cpu") for epoch in pca_gen_images], os.path.join(CKPT_PATH, name, "pca_gen_images.pth"))
-    torch.save([{l: i.to("cpu") for l, i in epoch.items()} for epoch in labeled_pca_gen_images],
-               os.path.join(CKPT_PATH, name, "labeled_pca_gen_images.pth"))
     torch.save(decoder.to("cpu").state_dict(), os.path.join(CKPT_PATH, name, "decoder.pth"))
     torch.save(encoder.to("cpu").state_dict(), os.path.join(CKPT_PATH, name, "encoder.pth"))
     if loss is not None:
-        torch.save(loss, os.path.join(CKPT_PATH, name, "loss.pth"))
+        with open(os.path.join(CKPT_PATH, name, "loss.txt"),"w") as file:
+            file.write("\n".join([str(x) for x in loss]))
 
 
 def extract_images_of_models(name, rows=None):
@@ -31,7 +37,10 @@ def extract_images_of_models(name, rows=None):
             images = torch.load(images_pth_path)
             for epoch_num, epoch_images in enumerate(images):
                 grid = get_grid(epoch_images, rows)
-                image_path = os.path.join(path, f"{epoch_num}.png")
+                if img_type == "compressed_images" and epoch_num == len(images)-1:
+                    image_path = os.path.join(path, "original.png")
+                else:
+                    image_path = os.path.join(path, f"{epoch_num}.png")
                 save_img(grid, image_path)
     img_type = "labeled_pca_gen_images"
     path = os.path.join(CKPT_PATH, name, img_type)
@@ -47,7 +56,20 @@ def extract_images_of_models(name, rows=None):
                 save_img(grid, image_path)
 
 
+def save_images(gen_images, compressed_images, pca_gen_images, labeled_pca_gen_images, name, epoch):
+    path = os.path.join(CKPT_PATH, name)
+    for img_type, images in zip(["gen_images", "compressed_images", "pca_gen_images"], (gen_images, compressed_images, pca_gen_images)):
+        grid = get_grid(images)
+        image_path = os.path.join(path, img_type, f"{epoch}.png")
+        save_img(grid, image_path)
+    for label, label_images in labeled_pca_gen_images.items():
+        grid = get_grid(label_images)
+        image_path = os.path.join(path, "labeled_pca_gen_images", str(label), f"{epoch}.png")
+        save_img(grid, image_path)
+
+
 def save_img(img: torch.Tensor, image_path):
+    os.makedirs(os.path.split(image_path)[0], exist_ok=True)
     if len(img.size()) == 4:
         img = img[0]
     c = img.size()[0]
@@ -77,6 +99,28 @@ def get_grid(images, rows=None):
     return torchvision.utils.make_grid(images, rows)[:images.size()[1]]
 
 
+def get_bunch(train_loader, n_batches=100):
+    bunch = []
+    iterator = iter(train_loader)
+    for i in range(n_batches):
+        try:
+            input, labels = next(iterator)
+        except StopIteration:
+            break
+        bunch.append((input.to(device), labels.to(device)))
+    return bunch
+
+
+def get_stacked_bunch(train_loader, n_batches=100):  # maybe unecessary
+    bunch = get_bunch(train_loader, n_batches)
+    bunch, labels = [x[0] for x in bunch], [x[1] for x in bunch]
+    bunch, labels = torch.stack(bunch), torch.stack(labels)
+    size = bunch.size()
+    bunch = bunch.view(size[0]*size[1], *size[2:])
+    labels = labels.view(size[0]*size[1], labels.size()[2:])
+    return bunch, labels
+
+
 def latent_space_pca(encoder: nn.Module, train_loader, n_batches=100):  # everything is transposed compared to what i am used to
     latent_space = []
     encoder = encoder.to(device).eval()
@@ -103,6 +147,7 @@ def labeled_latent_space_pca(encoder: nn.Module, train_loader, n_batches=100):  
             input, labels = next(iterator)
         except StopIteration:
             break
+        labels = torch.stack([torch.as_tensor(label)[0] for label in labels])
         new_ls_samples = encoder(input.to(device)).detach()
         for label in torch.unique(labels):
             label = label.item()

@@ -9,7 +9,7 @@ from utility import latent_space_pca, save_model, extract_images_of_models, labe
 
 
 class TrainAE:
-    def __init__(self, encoder_class, decoder_class, name, epochs, dataset_name):
+    def __init__(self, encoder_class, decoder_class, name, epochs, dataset_name, label=None):
         self._encoder_class = encoder_class
         self._decoder_class = decoder_class
         self.name = name
@@ -22,6 +22,7 @@ class TrainAE:
         self._data_loader = None
         self._trained = os.path.exists(os.path.join(CKPT_PATH, name))
         self._labeled_pca = None
+        self.label = label
 
     @property
     def encoder(self):
@@ -79,17 +80,15 @@ class TrainAE:
     @property
     def data_loader(self):
         if self._data_loader is None:
-            self._data_loader = get_data_loader(self._dataset_name)
+            self._data_loader = get_data_loader(self._dataset_name, self.label)
         return self._data_loader
 
     def train(self):
         self._decoder = self._decoder_class().to(device).train()
         self._encoder = self._encoder_class().to(device).train()
-        gen_images, compressed_images, pca_gen_images, labeled_pca_gen_images, loss =\
-            train_autoencoder(self.encoder, self.decoder, self.data_loader, device,
+        loss = train_autoencoder(self.encoder, self.decoder, self.data_loader, device, self.name,
                               self.encoder.latent_size, epochs=self.epochs)
+        save_model(self.encoder, self.decoder, self.name, loss)
         self._trained = True
-        save_model(self.encoder, self.decoder, self.name, gen_images, compressed_images, pca_gen_images, labeled_pca_gen_images, loss)
-        extract_images_of_models(self.name)
         self.make_pca()
         self.make_labeled_pca()

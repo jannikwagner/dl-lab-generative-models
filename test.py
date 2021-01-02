@@ -1,9 +1,10 @@
 from TrainModels import TrainAE
 from datasets import getMNIST, getCIFAR10, getFashionMNIST, get_data_loader
-from defaults import device, MNIST, FashionMNIST, CIFAR10
+from defaults import device, MNIST, FashionMNIST, CIFAR10, CelebA, CelebA_size
 from models.MNIST.Autoencoder import *
 from models.CIFAR10.Auoencoder import *
 from train.Autoencoder import train_autoencoder
+import torch.nn as nn
 
 from utility import save_model, extract_images_of_models, load_model, latent_space_pca, sample_in_pc, \
     plot_images2, normal_to_pc, get_sample_k_of_d, labeled_latent_space_pca
@@ -36,13 +37,35 @@ train_cifar10_aes = [
     TrainAE(CIFAR10Encoder5, CIFAR10Decoder5, "CIFAR10AE5", 50, CIFAR10),
     TrainAE(CIFAR10Encoder6, CIFAR10Decoder6, "CIFAR10AE6", 50, CIFAR10),
     TrainAE(CIFAR10Encoder7, CIFAR10Decoder7, "CIFAR10AE7", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE8", 1, CIFAR10),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE8", 100, CIFAR10),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(5,3,3),(2,1,1),100), "CIFAR10AE9", 100, CIFAR10),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(5,3,3,3,3),(2,1,1,1,1),100), "CIFAR10AE10", 100, CIFAR10),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,12,16,20,24,28,32,36,40),(3,)*10,(1,)*10,100), "CIFAR10AE11", 100, CIFAR10),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64,128),(3,)*6,(1,1,2,1,1,2),100), "CIFAR10AE12", 100, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),50), "CIFAR10AE13", 100, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32),(5,3,3,3),(1,1,1,2),25), "CIFAR10AE14", 100, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,32,32,32),(3,)*7,(1,)*7,100), "CIFAR10AE15", 100, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,32,32),(3,)*6,(1,)*6,100), "CIFAR10AE16", 100, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64,64,64),(3,)*7,(1,)*7,200), "CIFAR10AE17", 100, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),200,enc_fn=nn.Identity), "CIFAR10AE18", 100, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,5,7,9,11),(1,1,1,1,1),256,enc_fn=nn.Identity), "CIFAR10AE19s", 10, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,5,7,9,11),(1,1,1,1,1),256,enc_fn=nn.Identity), "CIFAR10AE19", 100, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,3,5,7,9),(1,1,1,1,1),512), "CIFAR10AE20", 100, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,3,5,7,9),(1,1,1,1,1),512), "CIFAR10AE21", 100, CIFAR10, label=1),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE22", 1000, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE23", 1000, CIFAR10, label=2),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,3,5,7,9),(1,1,1,1,1),512), "CIFAR10AE24", 1000, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,3,5,7,9),(1,1,1,1,1),512), "CIFAR10AE25", 1000, CIFAR10, label=3),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),512), "CIFAR10AE26", 1000, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE27", 1000, CIFAR10, label=4),
 ]
+
+train_CelebA_aes = (
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,)*4,(3,)*4,(2,)*4,128, *CelebA_size),"CelebA4",50,CelebA),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,48,64),(3,4,5,6,7,8),(1,2,1,2,1,2),512,*CelebA_size),"CelebA2",50,CelebA),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,48,64,80,96),(3,3,3,3,3,3,3,3),(1,2,1,2,1,2,1,2),512, *CelebA_size),"CelebA3",50,CelebA),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,48,64),(3,3,3,3,3,3),(1,2,1,2,1,2),512, *CelebA_size),"CelebA1",50,CelebA),
+)
 
 
 def tests():
@@ -77,5 +100,14 @@ def tests():
 
 
 if __name__ == "__main__":
-    for trainae in train_cifar10_aes[-6:]:
-        trainae.train()
+    if True:
+        trainees = train_CelebA_aes
+        for trainae in trainees[3:4]:
+            trainae.train()
+            
+    else:
+        d=get_data_loader(CelebA)
+        x= next(iter(d))[0]
+        z=get_symmetric_fully_convolutional_autoencoder((4,8,16,32,48,64),(3,3,3,3,3,3),(1,2,1,2,1,2),512,3,218,178)
+        e=z[0]()
+        d=z[1]()

@@ -256,7 +256,7 @@ class CIFAR10Decoder7(nn.Module):
                                    nn.Linear(4096, c*h*w),
                                    nn.Tanh(),
                                    nn.Unflatten(-1, (c, h, w)))
-
+    
     def forward(self, x):
         return self.model(x)
 
@@ -273,7 +273,7 @@ class Interpolate(nn.Module):
         return x
 
 
-def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools, latent_size, c=c, h=h, w=w):
+def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools, latent_size, c=c, h=h, w=w, enc_fn=nn.Tanh):
     class Encoder(nn.Module):
         def __init__(self):
             super().__init__()
@@ -289,13 +289,16 @@ def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools,
                     new_w //= pool
                     layers.append(nn.MaxPool2d(pool))
                 layers.append(nn.ReLU())
-                layers.append(nn.BatchNorm2d((new_c)))
+                layers.append(nn.BatchNorm2d(new_c))
             layers.append(nn.Flatten())
             layers.append(nn.Linear(new_h*new_w*channels[-1], latent_size))
-            layers.append(nn.Tanh())
+            layers.append(enc_fn())
+            layers.append(nn.BatchNorm1d(latent_size))
             self.model = nn.Sequential(*layers)
+
         def forward(self, x):
             return self.model(x)
+
     class Decoder(nn.Module):
         def __init__(self):
             super().__init__()
@@ -326,6 +329,8 @@ def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools,
             if new_h != h or new_w != w:
                 layers.append(Interpolate((h, w)))
             self.model = nn.Sequential(*layers)
+
         def forward(self, x):
             return self.model(x)
+
     return Encoder, Decoder
