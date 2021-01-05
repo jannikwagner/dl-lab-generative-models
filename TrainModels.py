@@ -6,14 +6,17 @@ from datasets import get_data_loader
 from defaults import CKPT_PATH, device
 from train.Autoencoder import train_autoencoder
 from utility import latent_space_pca, save_model, extract_images_of_models, labeled_latent_space_pca
+import logging
+import torch.optim as optim
 
 
 class TrainAE:
-    def __init__(self, encoder_class, decoder_class, name, epochs, dataset_name, label=None):
+    def __init__(self, encoder_class, decoder_class, name, epochs, dataset_name, Optimizer=optim.Adam, label=None):
         self._encoder_class = encoder_class
         self._decoder_class = decoder_class
         self.name = name
         self.epochs = epochs
+        self.Optimizer = Optimizer
         self._encoder = None
         self._decoder = None
         self._mean = None
@@ -84,11 +87,10 @@ class TrainAE:
         return self._data_loader
 
     def train(self):
+        logging.debug(f"Start training of {self.name}")
         self._decoder = self._decoder_class().to(device).train()
         self._encoder = self._encoder_class().to(device).train()
-        loss = train_autoencoder(self.encoder, self.decoder, self.data_loader, device, self.name,
-                              self.encoder.latent_size, epochs=self.epochs)
+        loss = train_autoencoder(self.encoder, self.decoder, self.data_loader, device, self.name, self.encoder.latent_size,
+        epochs=self.epochs, Optimizer=self.Optimizer)
         save_model(self.encoder, self.decoder, self.name, loss)
         self._trained = True
-        self.make_pca()
-        self.make_labeled_pca()

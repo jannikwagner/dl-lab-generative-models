@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
+from models.base import Interpolate, MLP
 
-c,h,w=3,32,32
+c, h, w = 3, 32, 32
 
 
 class CIFAR10Encoder1(nn.Module):
@@ -107,7 +108,8 @@ class CIFAR10Encoder4(nn.Module):
                                    nn.ReLU(),
                                    nn.MaxPool2d(2),
                                    nn.Flatten(),
-                                   nn.Linear(32 * ((h-4)//2-4)//2 * ((w-4)//2-4)//2, 128),
+                                   nn.Linear(32 * ((h-4)//2-4)//2 *
+                                             ((w-4)//2-4)//2, 128),
                                    nn.ReLU(),
                                    nn.Linear(128, 64),
                                    nn.ReLU(),
@@ -138,7 +140,8 @@ class CIFAR10Encoder5(nn.Module):
                                    nn.ReLU(),
                                    nn.MaxPool2d(2),
                                    nn.Flatten(),
-                                   nn.Linear(32 * ((h-4)//2-4)//2 * ((w-4)//2-4)//2, 512),
+                                   nn.Linear(32 * ((h-4)//2-4)//2 *
+                                             ((w-4)//2-4)//2, 512),
                                    nn.ReLU(),
                                    nn.Linear(512, 256),
                                    nn.ReLU(),
@@ -188,7 +191,8 @@ class CIFAR10Encoder6(nn.Module):
                                    nn.MaxPool2d(2),
                                    nn.Flatten(),
                                    nn.Dropout(),
-                                   nn.Linear(32 * ((h-4)//2-4)//2 * ((w-4)//2-4)//2, 1024),
+                                   nn.Linear(32 * ((h-4)//2-4)//2 *
+                                             ((w-4)//2-4)//2, 1024),
                                    nn.ReLU(),
                                    nn.Linear(1024, 512),
                                    nn.ReLU(),
@@ -256,44 +260,38 @@ class CIFAR10Decoder7(nn.Module):
                                    nn.Linear(4096, c*h*w),
                                    nn.Tanh(),
                                    nn.Unflatten(-1, (c, h, w)))
-    
+
     def forward(self, x):
         return self.model(x)
 
 
-class Interpolate(nn.Module):
-    def __init__(self, size, mode="bilinear"):
-        super(Interpolate, self).__init__()
-        self.interp = nn.functional.interpolate
-        self.size = size
-        self.mode = mode
-        
-    def forward(self, x):
-        x = self.interp(x, size=self.size, mode=self.mode, align_corners=False)
-        return x
+def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools, fc_layers=(), c=c, h=h, w=w, enc_fn=nn.Tanh):
+    if isinstance(fc_layers, int):
+        fc_layers = (fc_layers,)
+    new_h, new_w = h, w
+    for filter_size, pool in zip(filter_sizes, pools):
+        new_h -= filter_size-1
+        new_w -= filter_size-1
+        if pool != 1:
+            new_h //= pool
+            new_w //= pool
+    fc_layers = (new_h*new_w*channels[-1],) + fc_layers
 
-
-def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools, latent_size, c=c, h=h, w=w, enc_fn=nn.Tanh):
     class Encoder(nn.Module):
         def __init__(self):
             super().__init__()
-            self.latent_size = latent_size
+            self.latent_size = fc_layers[-1]
             layers = []
-            new_h, new_w = h, w
             for old_c, new_c, filter_size, pool in zip((c,) + channels[:-1], channels, filter_sizes, pools):
-                new_h -= filter_size-1
-                new_w -= filter_size-1
                 layers.append(nn.Conv2d(old_c, new_c, filter_size))
                 if pool != 1:
-                    new_h //= pool
-                    new_w //= pool
                     layers.append(nn.MaxPool2d(pool))
                 layers.append(nn.ReLU())
                 layers.append(nn.BatchNorm2d(new_c))
             layers.append(nn.Flatten())
-            layers.append(nn.Linear(new_h*new_w*channels[-1], latent_size))
-            layers.append(enc_fn())
-            layers.append(nn.BatchNorm1d(latent_size))
+            if len(fc_layers) > 1:
+                layers.append(MLP(fc_layers, nn.ReLU, enc_fn))
+                layers.append(nn.BatchNorm1d(self.latent_size))
             self.model = nn.Sequential(*layers)
 
         def forward(self, x):
@@ -302,35 +300,107 @@ def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools,
     class Decoder(nn.Module):
         def __init__(self):
             super().__init__()
-            self.latent_size = latent_size
-            new_h, new_w = h, w
-            for filter_size, pool in zip(filter_sizes, pools):
-                new_h -= filter_size-1
-                new_w -= filter_size-1
-                if pool != 1:
-                    new_h //= pool
-                    new_w //= pool
-            layers = [nn.Linear(latent_size, new_h*new_w*channels[-1]),
-                      nn.ReLU(),
-                      nn.BatchNorm1d(new_h*new_w*channels[-1]),
-                      nn.Unflatten(1, (channels[-1], new_h, new_w))]
+            self.latent_size = fc_layers[-1]
+            new_h2, new_w2 = new_h, new_w
+            layers = []
+            if len(fc_layers) > 1:
+                layers.append(MLP(list(reversed(fc_layers)), nn.ReLU, nn.ReLU))
+                layers.append(nn.BatchNorm1d(new_h2*new_w2*channels[-1]))
+            layers.append(nn.Unflatten(1, (channels[-1], new_h2, new_w2)))
             for i, (new_c, old_c, filter_size, pool) in reversed(list(enumerate(zip((c,) + channels[:-1], channels, filter_sizes, pools)))):
                 if pool != 1:
-                    new_h *= pool
-                    new_w *= pool
-                    layers.append(nn.Upsample(scale_factor=pool, mode="nearest"))
+                    new_h2 *= pool
+                    new_w2 *= pool
+                    layers.append(nn.Upsample(
+                        scale_factor=pool, mode="bilinear"))
                 layers.append(nn.ConvTranspose2d(old_c, new_c, filter_size))
-                new_h += filter_size-1
-                new_w += filter_size-1
+                new_h2 += filter_size-1
+                new_w2 += filter_size-1
                 if i != 0:
                     layers.append(nn.ReLU())
                     layers.append(nn.BatchNorm2d(new_c))
             layers.append(nn.Tanh())
-            if new_h != h or new_w != w:
+            if new_h2 != h or new_w2 != w:
                 layers.append(Interpolate((h, w)))
             self.model = nn.Sequential(*layers)
 
         def forward(self, x):
             return self.model(x)
+
+    return Encoder, Decoder
+
+def get_stacked_ful_conv_ae(channels, filter_sizes, pools, fc_layers=(), c=c, h=h, w=w, enc_fn=nn.Tanh):
+    if isinstance(fc_layers, int):
+        fc_layers = (fc_layers,)
+    new_h, new_w = h, w
+    for filter_size, pool in zip(filter_sizes, pools):
+        new_h -= filter_size-1
+        new_w -= filter_size-1
+        if pool != 1:
+            new_h //= pool
+            new_w //= pool
+    fc_layers = (new_h*new_w*channels[-1],) + fc_layers
+
+    class Encoder(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.latent_size = fc_layers[-1]
+            layers = []
+            self.stacks = []
+            for old_c, new_c, filter_size, pool in zip((c,) + channels[:-1], channels, filter_sizes, pools):
+                layers.append(nn.Conv2d(old_c, new_c, filter_size))
+                if pool != 1:
+                    layers.append(nn.MaxPool2d(pool))
+                layers.append(nn.ReLU())
+                layers.append(nn.BatchNorm2d(new_c))
+                self.stacks.append(nn.Sequential(*layers))
+            layers.append(nn.Flatten())
+            if len(fc_layers) > 1:
+                layers.append(MLP(fc_layers, nn.ReLU, enc_fn))
+                layers.append(nn.BatchNorm1d(self.latent_size))
+            self.model = nn.Sequential(*layers)
+
+        def forward(self, x, stack=None):
+            if stack is None or stack >= len(self.stacks):
+                return self.model(x)
+            else:
+                return self.stacks[stack](x)
+
+    class Decoder(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.latent_size = fc_layers[-1]
+            new_h2, new_w2 = new_h, new_w
+            layers = []
+            inv_stacks = []
+            if len(fc_layers) > 1:
+                layers.append(MLP(list(reversed(fc_layers)), nn.ReLU, nn.ReLU))
+                layers.append(nn.BatchNorm1d(new_h2*new_w2*channels[-1]))
+            layers.append(nn.Unflatten(1, (channels[-1], new_h2, new_w2)))
+            for i, (new_c, old_c, filter_size, pool) in reversed(list(enumerate(zip((c,) + channels[:-1], channels, filter_sizes, pools)))):
+                inv_stacks.append(len(layers))
+                if pool != 1:
+                    new_h2 *= pool
+                    new_w2 *= pool
+                    layers.append(nn.Upsample(
+                        scale_factor=pool, mode="bilinear"))
+                layers.append(nn.ConvTranspose2d(old_c, new_c, filter_size))
+                new_h2 += filter_size-1
+                new_w2 += filter_size-1
+                if i != 0:
+                    layers.append(nn.ReLU())
+                    layers.append(nn.BatchNorm2d(new_c))
+            layers.append(nn.Tanh())
+            if new_h2 != h or new_w2 != w:
+                layers.append(Interpolate((h, w)))
+            self.stacks = []
+            for i in reversed(inv_stacks):
+                self.stacks.append(nn.Sequential(*layers[i:]))
+            self.model = nn.Sequential(*layers)
+
+        def forward(self, x, stack=None):
+            if stack is None or stack >= len(self.stacks):
+                return self.model(x)
+            return self.stacks[stack](x)
 
     return Encoder, Decoder

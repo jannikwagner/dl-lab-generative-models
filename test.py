@@ -2,70 +2,14 @@ from TrainModels import TrainAE
 from datasets import getMNIST, getCIFAR10, getFashionMNIST, get_data_loader
 from defaults import device, MNIST, FashionMNIST, CIFAR10, CelebA, CelebA_size
 from models.MNIST.Autoencoder import *
-from models.CIFAR10.Auoencoder import *
-from train.Autoencoder import train_autoencoder
+from models.CIFAR10.Autoencoder import *
+from train.Autoencoder import train_autoencoder, train_stacked_ae
 import torch.nn as nn
+from models.VarAE import get_sym_fully_conv_vae
+import time
 
 from utility import save_model, extract_images_of_models, load_model, latent_space_pca, sample_in_pc, \
-    plot_images2, normal_to_pc, get_sample_k_of_d, labeled_latent_space_pca
-
-
-mnist_train_aes = [
-    TrainAE(MNISTEncoder1, MNISTDecoder1, "dummy", 2, MNIST),
-    TrainAE(MNISTEncoder1, MNISTDecoder1, "AE1", 50, MNIST),
-    TrainAE(MNISTEncoder2, MNISTDecoder2, "AE2", 50, MNIST),
-    TrainAE(MNISTEncoder3, MNISTDecoder3, "AE3", 50, MNIST),
-    TrainAE(MNISTEncoder4, MNISTDecoder4, "AE4", 50, MNIST),
-    TrainAE(MNISTEncoder5, MNISTDecoder5, "AE5", 50, MNIST),
-]
-
-fashionMnist_train_aes = [
-    TrainAE(MNISTEncoder1, MNISTDecoder1, "Fashiondummy", 2, FashionMNIST),
-    TrainAE(MNISTEncoder1, MNISTDecoder1, "FashionAE1", 50, FashionMNIST),
-    TrainAE(MNISTEncoder2, MNISTDecoder2, "FashionAE2", 50, FashionMNIST),
-    TrainAE(MNISTEncoder3, MNISTDecoder3, "FashionAE3", 50, FashionMNIST),
-    TrainAE(MNISTEncoder4, MNISTDecoder4, "FashionAE4", 50, FashionMNIST),
-    TrainAE(MNISTEncoder5, MNISTDecoder5, "FashionAE5", 50, FashionMNIST),
-]
-
-train_cifar10_aes = [
-    TrainAE(CIFAR10Encoder1, CIFAR10Decoder1, "CIFAR10dummy", 2, CIFAR10),
-    TrainAE(CIFAR10Encoder1, CIFAR10Decoder1, "CIFAR10AE1", 50, CIFAR10),
-    TrainAE(CIFAR10Encoder2, CIFAR10Decoder2, "CIFAR10AE2", 50, CIFAR10),
-    TrainAE(CIFAR10Encoder3, CIFAR10Decoder3, "CIFAR10AE3", 50, CIFAR10),
-    TrainAE(CIFAR10Encoder4, CIFAR10Decoder4, "CIFAR10AE4", 50, CIFAR10),
-    TrainAE(CIFAR10Encoder5, CIFAR10Decoder5, "CIFAR10AE5", 50, CIFAR10),
-    TrainAE(CIFAR10Encoder6, CIFAR10Decoder6, "CIFAR10AE6", 50, CIFAR10),
-    TrainAE(CIFAR10Encoder7, CIFAR10Decoder7, "CIFAR10AE7", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE8", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(5,3,3),(2,1,1),100), "CIFAR10AE9", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(5,3,3,3,3),(2,1,1,1,1),100), "CIFAR10AE10", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,12,16,20,24,28,32,36,40),(3,)*10,(1,)*10,100), "CIFAR10AE11", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64,128),(3,)*6,(1,1,2,1,1,2),100), "CIFAR10AE12", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),50), "CIFAR10AE13", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32),(5,3,3,3),(1,1,1,2),25), "CIFAR10AE14", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,32,32,32),(3,)*7,(1,)*7,100), "CIFAR10AE15", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,32,32),(3,)*6,(1,)*6,100), "CIFAR10AE16", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64,64,64),(3,)*7,(1,)*7,200), "CIFAR10AE17", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),200,enc_fn=nn.Identity), "CIFAR10AE18", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,5,7,9,11),(1,1,1,1,1),256,enc_fn=nn.Identity), "CIFAR10AE19s", 10, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,5,7,9,11),(1,1,1,1,1),256,enc_fn=nn.Identity), "CIFAR10AE19", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,3,5,7,9),(1,1,1,1,1),512), "CIFAR10AE20", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,3,5,7,9),(1,1,1,1,1),512), "CIFAR10AE21", 100, CIFAR10, label=1),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE22", 1000, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE23", 1000, CIFAR10, label=2),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,3,5,7,9),(1,1,1,1,1),512), "CIFAR10AE24", 1000, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,3,5,7,9),(1,1,1,1,1),512), "CIFAR10AE25", 1000, CIFAR10, label=3),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),512), "CIFAR10AE26", 1000, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE27", 1000, CIFAR10, label=4),
-]
-
-train_CelebA_aes = (
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,)*4,(3,)*4,(2,)*4,128, *CelebA_size),"CelebA4",50,CelebA),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,48,64),(3,4,5,6,7,8),(1,2,1,2,1,2),512,*CelebA_size),"CelebA2",50,CelebA),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,48,64,80,96),(3,3,3,3,3,3,3,3),(1,2,1,2,1,2,1,2),512, *CelebA_size),"CelebA3",50,CelebA),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,48,64),(3,3,3,3,3,3),(1,2,1,2,1,2),512, *CelebA_size),"CelebA1",50,CelebA),
-)
+    plot_images2, normal_to_pc, get_sample_k_of_d, labeled_latent_space_pca, param_count, param_print
 
 
 def tests():
@@ -99,15 +43,40 @@ def tests():
     plot_images2(decoder_b(torch.stack([mean for label, (mean, cov) in x_b.items()]).view(-1,ls)).detach())
 
 
+def reconstruct(svd):
+    return  svd[0]@torch.diag(svd[1])@svd[2].transpose(0,1)
+
+
+def model_summary():
+    E,D=get_stacked_ful_conv_ae((8,12,16,24,32,44,56,64),(5,3,3,3,3,3,3,3),(1,2,1,2,1,2,1,2),(2048,1024),*CelebA_size)
+    e,d=E(),D()
+    param_print(e)
+    print(param_count(e))
+    print(e)
+    param_print(d)
+    print(param_count(d))
+    print(d)
+    x=torch.randn(32,*CelebA_size)
+    a=x
+    for mod in list(e.modules())[2:]:
+        if isinstance(mod, MLP) or isinstance(mod, nn.Sequential):
+            continue
+        print(mod)
+        a = mod(a)
+        print(a.size())
+        print(torch.prod(torch.as_tensor(a.size()[1:])))
+        print()
+    z=e(x)
+    y=d(z)
+    test_stacked_ae(e,d)
+
+
+def test_stacked_ae(e,d):    
+    x=torch.randn(32,*CelebA_size)
+    for stack in range(len(e.stacks)):
+        d(e(x,stack),stack)
+
+
+
 if __name__ == "__main__":
-    if True:
-        trainees = train_CelebA_aes
-        for trainae in trainees[3:4]:
-            trainae.train()
-            
-    else:
-        d=get_data_loader(CelebA)
-        x= next(iter(d))[0]
-        z=get_symmetric_fully_convolutional_autoencoder((4,8,16,32,48,64),(3,3,3,3,3,3),(1,2,1,2,1,2),512,3,218,178)
-        e=z[0]()
-        d=z[1]()
+    model_summary()
