@@ -29,16 +29,16 @@ def get_sym_fully_conv_vae(channels, filter_sizes, pools, fc_layers=(), c=c, h=h
                 layers.append(nn.ReLU())
                 layers.append(nn.BatchNorm2d(new_c))
             layers.append(nn.Flatten())
-            if len(fc_layers) <= 2:
+            if len(fc_layers) <= 2:  # if 1 or 2 -> we need fc layer anyways
                 self.encoded_size = fc_layers[0]
-            if len(fc_layers) >= 3:
+            if len(fc_layers) >= 3:  # last fully connected layer will not be part of the MLP, instead two heads mean and log_var
                 self.encoded_size = fc_layers[-2]
-                layers.append(MLP(fc_layers[:-1], nn.ReLU, nn.ReLU))
+                layers.append(MLP(fc_layers[:-1], nn.ReLU, nn.ReLU))  # leave out 
                 layers.append(nn.BatchNorm1d(fc_layers[-2]))
             
             self.model = nn.Sequential(*layers)
             self.mean = nn.Sequential(nn.Linear(self.encoded_size, self.latent_size), enc_fn())
-            self.log_var = nn.Sequential(nn.Linear(self.encoded_size, self.latent_size), enc_fn())
+            self.log_var = nn.Linear(self.encoded_size, self.latent_size)  # log_var should be able to take values under 0
 
         def forward(self, x):
             x_encoded = self.model(x)

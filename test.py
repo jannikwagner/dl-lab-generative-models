@@ -1,6 +1,6 @@
 from TrainModels import TrainAE
 from datasets import getMNIST, getCIFAR10, getFashionMNIST, get_data_loader
-from defaults import device, MNIST, FashionMNIST, CIFAR10, CelebA, CelebA_size
+from defaults import device, MNIST, FashionMNIST, CIFAR10, CelebA, CelebA_size, CIFAR10_size
 from models.MNIST.Autoencoder import *
 from models.CIFAR10.Autoencoder import *
 from train.Autoencoder import train_autoencoder, train_stacked_ae
@@ -48,7 +48,10 @@ def reconstruct(svd):
 
 
 def model_summary():
-    E,D=get_stacked_ful_conv_ae((8,12,16,24,32,44,56,64),(5,3,3,3,3,3,3,3),(1,2,1,2,1,2,1,2),(2048,1024),*CelebA_size)
+    size = CelebA_size
+    E,D=get_symmetric_fully_convolutional_autoencoder((4,5,6,7,8,9,10,11,),(3,3,3,3,3,3,3,3,),(1,)*8,(2048,1024), *size)
+    E,D=get_symmetric_fully_convolutional_autoencoder((8,12,16,32),(3,3,3,3,),(2,1,1,1,),(2048,1024), *size)
+    E,D=get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,32),(3,3,3,3,3,3,3),(1,2,1,2,1,2,1),(1024,))
     e,d=E(),D()
     param_print(e)
     print(param_count(e))
@@ -56,7 +59,7 @@ def model_summary():
     param_print(d)
     print(param_count(d))
     print(d)
-    x=torch.randn(32,*CelebA_size)
+    x=torch.randn(32,*size)
     a=x
     for mod in list(e.modules())[2:]:
         if isinstance(mod, MLP) or isinstance(mod, nn.Sequential):
@@ -74,7 +77,10 @@ def model_summary():
 def test_stacked_ae(e,d):    
     x=torch.randn(32,*CelebA_size)
     for stack in range(len(e.stacks)):
-        d(e(x,stack),stack)
+        z = e(x,stack)
+        y=d(z,stack)
+        print(z.size())
+        print(x.size())
 
 
 

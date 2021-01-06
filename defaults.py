@@ -14,3 +14,4 @@ FashionMNIST = "FashionMNIST"
 CIFAR10 = "CIFAR10"
 CelebA = "CelebA"
 CelebA_size = (3,218,178)
+CIFAR10_size = (3, 32, 32)

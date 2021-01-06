@@ -265,7 +265,7 @@ class CIFAR10Decoder7(nn.Module):
         return self.model(x)
 
 
-def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools, fc_layers=(), c=c, h=h, w=w, enc_fn=nn.Tanh):
+def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools, fc_layers=(), c=c, h=h, w=w, enc_fn=nn.Identity):
     if isinstance(fc_layers, int):
         fc_layers = (fc_layers,)
     new_h, new_w = h, w
@@ -288,14 +288,17 @@ def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools,
                     layers.append(nn.MaxPool2d(pool))
                 layers.append(nn.ReLU())
                 layers.append(nn.BatchNorm2d(new_c))
+            if len(fc_layers) == 1:  # no batchnorm or relu on last layer
+                layers.pop()
+                layers.pop()
+                layers.append(enc_fn())
             layers.append(nn.Flatten())
             if len(fc_layers) > 1:
                 layers.append(MLP(fc_layers, nn.ReLU, enc_fn))
-                layers.append(nn.BatchNorm1d(self.latent_size))
             self.model = nn.Sequential(*layers)
 
         def forward(self, x):
-            return self.model(x)
+            return self.model(x)*4  # if activation function is tanh this could be quite useful
 
     class Decoder(nn.Module):
         def __init__(self):
@@ -316,7 +319,7 @@ def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools,
                 layers.append(nn.ConvTranspose2d(old_c, new_c, filter_size))
                 new_h2 += filter_size-1
                 new_w2 += filter_size-1
-                if i != 0:
+                if i != 0:  # no relu and batchnorm in last layer
                     layers.append(nn.ReLU())
                     layers.append(nn.BatchNorm2d(new_c))
             layers.append(nn.Tanh())
@@ -329,7 +332,7 @@ def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools,
 
     return Encoder, Decoder
 
-def get_stacked_ful_conv_ae(channels, filter_sizes, pools, fc_layers=(), c=c, h=h, w=w, enc_fn=nn.Tanh):
+def get_stacked_ful_conv_ae(channels, filter_sizes, pools, fc_layers=(), c=c, h=h, w=w, enc_fn=nn.Identity):
     if isinstance(fc_layers, int):
         fc_layers = (fc_layers,)
     new_h, new_w = h, w
@@ -347,24 +350,26 @@ def get_stacked_ful_conv_ae(channels, filter_sizes, pools, fc_layers=(), c=c, h=
             self.latent_size = fc_layers[-1]
             layers = []
             self.stacks = []
-            for old_c, new_c, filter_size, pool in zip((c,) + channels[:-1], channels, filter_sizes, pools):
+            for i, (old_c, new_c, filter_size, pool) in enumerate(zip((c,) + channels[:-1], channels, filter_sizes, pools)):
                 layers.append(nn.Conv2d(old_c, new_c, filter_size))
                 if pool != 1:
                     layers.append(nn.MaxPool2d(pool))
-                layers.append(nn.ReLU())
-                layers.append(nn.BatchNorm2d(new_c))
+                if i == len(channels) and len(fc_layers) == 1:  # last layer
+                    layers.append(enc_fn())
+                else:
+                    layers.append(nn.ReLU())
+                    layers.append(nn.BatchNorm2d(new_c))
                 self.stacks.append(nn.Sequential(*layers))
             layers.append(nn.Flatten())
             if len(fc_layers) > 1:
                 layers.append(MLP(fc_layers, nn.ReLU, enc_fn))
-                layers.append(nn.BatchNorm1d(self.latent_size))
             self.model = nn.Sequential(*layers)
 
         def forward(self, x, stack=None):
             if stack is None or stack >= len(self.stacks):
-                return self.model(x)
+                return self.model(x) * 4
             else:
-                return self.stacks[stack](x)
+                return self.stacks[stack](x) * 4
 
     class Decoder(nn.Module):
         def __init__(self):
@@ -373,7 +378,7 @@ def get_stacked_ful_conv_ae(channels, filter_sizes, pools, fc_layers=(), c=c, h=
             new_h2, new_w2 = new_h, new_w
             layers = []
             inv_stacks = []
-            if len(fc_layers) > 1:
+            if len(fc_layers) > 1:  # fully connected layers
                 layers.append(MLP(list(reversed(fc_layers)), nn.ReLU, nn.ReLU))
                 layers.append(nn.BatchNorm1d(new_h2*new_w2*channels[-1]))
             layers.append(nn.Unflatten(1, (channels[-1], new_h2, new_w2)))
@@ -387,7 +392,7 @@ def get_stacked_ful_conv_ae(channels, filter_sizes, pools, fc_layers=(), c=c, h=
                 layers.append(nn.ConvTranspose2d(old_c, new_c, filter_size))
                 new_h2 += filter_size-1
                 new_w2 += filter_size-1
-                if i != 0:
+                if i != 0:  # only if not last layer
                     layers.append(nn.ReLU())
                     layers.append(nn.BatchNorm2d(new_c))
             layers.append(nn.Tanh())

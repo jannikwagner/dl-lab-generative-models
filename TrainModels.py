@@ -11,7 +11,7 @@ import torch.optim as optim
 
 
 class TrainAE:
-    def __init__(self, encoder_class, decoder_class, name, epochs, dataset_name, Optimizer=optim.Adam, label=None):
+    def __init__(self, encoder_class, decoder_class, name, epochs, dataset_name, Optimizer=optim.Adam, label=None, normal_loss=False):
         self._encoder_class = encoder_class
         self._decoder_class = decoder_class
         self.name = name
@@ -26,6 +26,7 @@ class TrainAE:
         self._trained = os.path.exists(os.path.join(CKPT_PATH, name))
         self._labeled_pca = None
         self.label = label
+        self.normal_loss = normal_loss
 
     @property
     def encoder(self):
@@ -90,7 +91,7 @@ class TrainAE:
         logging.debug(f"Start training of {self.name}")
         self._decoder = self._decoder_class().to(device).train()
         self._encoder = self._encoder_class().to(device).train()
-        loss = train_autoencoder(self.encoder, self.decoder, self.data_loader, device, self.name, self.encoder.latent_size,
-        epochs=self.epochs, Optimizer=self.Optimizer)
+        train_autoencoder(self.encoder, self.decoder, self.data_loader, device, self.name, self.encoder.latent_size,
+        epochs=self.epochs, Optimizer=self.Optimizer, normal_loss=self.normal_loss)
         save_model(self.encoder, self.decoder, self.name, loss)
         self._trained = True
