@@ -332,6 +332,8 @@ def get_symmetric_fully_convolutional_autoencoder(channels, filter_sizes, pools,
 
     return Encoder, Decoder
 
+
+# old
 def get_stacked_ful_conv_ae(channels, filter_sizes, pools, fc_layers=(), c=c, h=h, w=w, enc_fn=nn.Identity):
     if isinstance(fc_layers, int):
         fc_layers = (fc_layers,)

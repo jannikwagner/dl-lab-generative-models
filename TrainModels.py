@@ -22,7 +22,8 @@ class TrainAE:
         self._mean = None
         self._cov = None
         self._dataset_name = dataset_name
-        self._data_loader = None
+        self._train_loader = None
+        self._val_loader = None
         self._trained = os.path.exists(os.path.join(CKPT_PATH, name))
         self._labeled_pca = None
         self.label = label
@@ -82,16 +83,22 @@ class TrainAE:
         torch.save(labeled_pca, os.path.join(CKPT_PATH, self.name, "labeled_pca.pth"))
 
     @property
-    def data_loader(self):
-        if self._data_loader is None:
-            self._data_loader = get_data_loader(self._dataset_name, self.label)
-        return self._data_loader
+    def train_loader(self):
+        if self._train_loader is None:
+            self._train_loader = get_data_loader(self._dataset_name, self.label, split="train")
+        return self._train_loader
+
+    @property
+    def val_loader(self):
+        if self._val_loader is None:
+            self._val_loader = get_data_loader(self._dataset_name, self.label, split="valid")
+        return self._val_loader
 
     def train(self):
         logging.debug(f"Start training of {self.name}")
         self._decoder = self._decoder_class().to(device).train()
         self._encoder = self._encoder_class().to(device).train()
-        train_autoencoder(self.encoder, self.decoder, self.data_loader, device, self.name, self.encoder.latent_size,
-        epochs=self.epochs, Optimizer=self.Optimizer, normal_loss=self.normal_loss)
-        save_model(self.encoder, self.decoder, self.name, loss)
+        train_autoencoder(self.encoder, self.decoder, self.train_loader, device, self.name, self.encoder.latent_size,
+        epochs=self.epochs, Optimizer=self.Optimizer, normal_loss_factor=self.normal_loss, val_loader=self.val_loader)
+        save_model(self.encoder, self.decoder, self.name)
         self._trained = True

@@ -7,7 +7,7 @@ DATA_PATH = "./data" if torch.cuda.is_available() else "~/pytorch/data"  # laufe
 MNIST = "MNIST"
 torch.manual_seed(111)
 if torch.cuda.is_available():
-    device = torch.device("cuda:1")
+    device = torch.device("cuda:0")
 else:
     device = torch.device("cpu")
 FashionMNIST = "FashionMNIST"

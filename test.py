@@ -6,6 +6,7 @@ from models.CIFAR10.Autoencoder import *
 from train.Autoencoder import train_autoencoder, train_stacked_ae
 import torch.nn as nn
 from models.VarAE import get_sym_fully_conv_vae
+from models.base import get_sym_resnet_ae, get_sym_ful_conv_ae2
 import time
 
 from utility import save_model, extract_images_of_models, load_model, latent_space_pca, sample_in_pc, \
@@ -49,9 +50,7 @@ def reconstruct(svd):
 
 def model_summary():
     size = CelebA_size
-    E,D=get_symmetric_fully_convolutional_autoencoder((4,5,6,7,8,9,10,11,),(3,3,3,3,3,3,3,3,),(1,)*8,(2048,1024), *size)
-    E,D=get_symmetric_fully_convolutional_autoencoder((8,12,16,32),(3,3,3,3,),(2,1,1,1,),(2048,1024), *size)
-    E,D=get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,32),(3,3,3,3,3,3,3),(1,2,1,2,1,2,1),(1024,))
+    E,D=get_sym_ful_conv_ae2((4,8,12,16,20,24,32),(3,4,3,4,3,4,3),None,(1,2,1,2,1,2,1),(128,))
     e,d=E(),D()
     param_print(e)
     print(param_count(e))
@@ -85,4 +84,5 @@ def test_stacked_ae(e,d):
 
 
 if __name__ == "__main__":
-    model_summary()
+    E,D=get_sym_resnet_ae((4,8,12,16,20,24,28,32),(4,)*7,(1,2,1,2,1,2,1),(4,)*7,(256,))
+    e,d=E(),D()

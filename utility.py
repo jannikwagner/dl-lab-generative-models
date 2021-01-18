@@ -170,6 +170,7 @@ def latent_space_pca(encoder: nn.Module, train_loader, n_batches=100):  # everyt
 
 
 def save_labeled_pca_gen_images(encoder, decoder, latent_sample, bunch, name, epoch):
+    torch.cuda.empty_cache()
     encoder=encoder.to(device).eval()
     latent_bunch = [(encoder(input.to(device)).detach(), labels) for input, labels in bunch]
     latent_stacked_bunch, labels = stack_bunch(latent_bunch)

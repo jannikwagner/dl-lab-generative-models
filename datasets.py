@@ -25,42 +25,42 @@ class OneClassIterableDataset(torch.utils.data.IterableDataset):
                 break
 
 
-def getMNIST():
+def getMNIST(split="train"):
     transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.5,), (0.5,))])
     train_set = torchvision.datasets.MNIST(
-        root=DATA_PATH, train=True, download=True, transform=transform
+        root=DATA_PATH, train=split=="train", download=True, transform=transform,
     )
     return train_set
 
 
-def getCIFAR10():
+def getCIFAR10(split="train"):
     transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.5,), (0.5,))])
     train_set = torchvision.datasets.CIFAR10(
-        root=DATA_PATH, download=True, transform=transform
+        root=DATA_PATH, download=True, transform=transform, train=split=="train"
     )
     return train_set
 
 
-def getCelebA():
+def getCelebA(split="train"):
     transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.5,), (0.5,))])
     train_set = torchvision.datasets.CelebA(
-        root=DATA_PATH, download=True, transform=transform
+        root=DATA_PATH, download=True, transform=transform, split=split
     )
     return train_set
 
 
-def getFashionMNIST():
+def getFashionMNIST(split="train"):
     transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.5,), (0.5,))])
     train_set = torchvision.datasets.FashionMNIST(
-        root=DATA_PATH, transform=transform, download=True
+        root=DATA_PATH, transform=transform, download=True, train=split=="train"
     )
     return train_set
 
@@ -70,23 +70,23 @@ def getImageNet():
         [transforms.ToTensor(),
          transforms.Normalize((0.5,), (0.5,))])
     train_set = torchvision.datasets.ImageNet(
-        root=DATA_PATH, transform=transform
+        root=DATA_PATH, transform=transform, download=True
     )
     return train_set
 
 _funs = {MNIST: getMNIST, FashionMNIST: getFashionMNIST, CIFAR10: getCIFAR10, CelebA: getCelebA}
-_data_sets = {name: None for name in _funs.keys()}
+_data_sets = {}
 
 
-def get_data_set(name):
-    assert name in _data_sets
-    if _data_sets[name] is None:
-        _data_sets[name] = _funs[name]()
-    return _data_sets[name]
+def get_data_set(name, split="train"):
+    assert name in _funs
+    if name+split not in _data_sets:
+        _data_sets[name+split] = _funs[name](split)
+    return _data_sets[name+split]
 
 
-def get_data_loader(name, label=None):
-    train_set = get_data_set(name)
+def get_data_loader(name, label=None, split="train"):
+    train_set = get_data_set(name, split)
     if label is None:
         train_loader = torch.utils.data.DataLoader(
             train_set, batch_size=BATCH_SIZE, shuffle=True,

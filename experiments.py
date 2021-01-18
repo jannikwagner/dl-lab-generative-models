@@ -8,6 +8,8 @@ from train.TrainVarAE import train_vae
 import torch.nn as nn
 import torch.optim as optim
 from models.VarAE import get_sym_fully_conv_vae
+from models.base import get_sym_resnet_ae, get_sym_ful_conv_ae2
+from train.trainGAN import train_gan
 
 from utility import save_model, extract_images_of_models, load_model, latent_space_pca, sample_in_pc, \
     plot_images2, normal_to_pc, get_sample_k_of_d, labeled_latent_space_pca, param_count, param_print
@@ -16,7 +18,8 @@ from utility import save_model, extract_images_of_models, load_model, latent_spa
 Optim1 = lambda p: optim.lr_scheduler.StepLR(optim.Adam(p, 0.001), step_size=1, gamma=0.97)
 Optim2 = lambda p: optim.lr_scheduler.StepLR(optim.Adam(p, 0.01), step_size=1, gamma=0.95)
 Optim3 = lambda p: optim.lr_scheduler.StepLR(optim.SGD(p, 0.001, weight_decay=0.01, momentum=0.9), step_size=1, gamma=0.98)
-
+Optim4 = lambda p: optim.lr_scheduler.StepLR(optim.Adam(p, 0.01), step_size=1, gamma=0.92)
+Optim5 = lambda p: optim.lr_scheduler.StepLR(optim.Adam(p, 0.001), step_size=1, gamma=0.92)
 
 mnist_train_aes = [
     TrainAE(MNISTEncoder1, MNISTDecoder1, "dummy", 2, MNIST),
@@ -67,8 +70,16 @@ train_cifar10_aes = [
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),512), "CIFAR10AE26", 1000, CIFAR10),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE27", 1000, CIFAR10, label=4),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,),(3,),(1,),(2048,1536,1024), *CIFAR10_size), "CIFAR10NAE1", 100, CIFAR10,Optimizer=Optim1,normal_loss=1/10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,12,16,32),(3,3,3,3,),(2,1,1,1,),(2048,1024), *CIFAR10_size), "CIFAR10AE28", 100, CIFAR10,Optimizer=Optim1),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,5,6,7,8,9,10,11,),(3,3,3,3,3,3,3,3,),(1,)*8,(2048,1024), *CIFAR10_size), "CIFAR10NAE29", 100, CIFAR10,Optimizer=Optim1),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,12,16,32),(3,3,3,3,),(2,1,1,1,),(2048,1024), *CIFAR10_size), "CIFAR10AE28", 100, CIFAR10,Optimizer=Optim2),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,5,6,7,8,9,10,11,),(3,3,3,3,3,3,3,3,),(1,)*8,(2048,1024), *CIFAR10_size), "CIFAR10AE29", 100, CIFAR10,Optimizer=Optim2),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,5,6,7,),(3,)*4,(1,)*4,(1024,), *CIFAR10_size), "CIFAR10AE30", 100, CIFAR10,Optimizer=Optim2),  # gut!!!
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,512,1024),(3,5,3,3,3,3,3,3,),(1,2,1,1,1,1,1,1),(), *CIFAR10_size), "CIFAR10AE33", 100, CIFAR10,Optimizer=Optim2),  # up to 1 pixel no dense leayer?
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,512,1024),(3,5,3,3,3,3,3,3,),(1,2,1,1,1,1,1,1),(1024,), *CIFAR10_size), "CIFAR10AE32", 100, CIFAR10,Optimizer=Optim2), # up to 1 pixel
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,512,1024),(3,)*8,(1,2,1,1,1,1,1,1),(1024,), *CIFAR10_size), "CIFAR10AE31", 100, CIFAR10,Optimizer=Optim2),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,512,1024),(11,8,5,3,3,3,3,3,),(1,1,1,1,1,1,1,1),(1024,), *CIFAR10_size), "CIFAR10AE34", 100, CIFAR10,Optimizer=Optim2),
+
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,5,6,7,),(3,)*4,(1,)*4,(1024,), *CIFAR10_size), "CIFAR10NAE1", 100, CIFAR10,Optimizer=Optim1, normal_loss=1),  # gut!!!]
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,5,6,),(3,)*3,(1,)*3,(512,256,128,64), *CIFAR10_size), "CIFAR10AE35", 50, CIFAR10,Optimizer=Optim4, normal_loss=False, label=1),
 ]
 
 train_CelebA_aes = [
@@ -88,6 +99,17 @@ train_CelebA_aes = [
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,32),(3,3,3,3,3,3,3),(1,2,1,2,1,2,1),(1024,), *CelebA_size),"CelebA15",50,CelebA,Optimizer=Optim3),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,64,32),(3,3,3,3,3,3,3),(1,2,1,2,1,2,1),(1024,), *CelebA_size),"CelebA16",50,CelebA),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,12,16,24,32,44,56,64),(5,3,3,3,3,3,3,3),(1,2,1,2,1,2,1,2),(2048,),*CelebA_size), "CelebANAE1",50,CelebA,Optimizer=Optim1,normal_loss=1/100),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,12,16,32),(3,3,3,3,3),(1,2,1,2,1,),(1024,), *CelebA_size), "CelebAAE17",100,CelebA,Optimizer=Optim2),  # womöglich latent_space zu groß?
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,12,16,32),(3,3,3,3,3),(1,2,1,2,1,),(128,), *CelebA_size), "CelebAAE18",100,CelebA,Optimizer=Optim2),  # stärkere Generalisierung, sampling klappt besser
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,5,6),(3,3,3),(1,1,1),(256,192,128,), *CelebA_size), "CelebAAE21",50,CelebA,Optimizer=Optim4),  # pooling scheint notwendig zu sein, verrauschtere Bilder
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,6,8,10,12),(3,3,3,3,3),(1,1,1,2,1,),(256,128,), *CelebA_size), "CelebAAE20",50,CelebA,Optimizer=Optim4),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,12,16,32),(3,3,3,3,3),(1,2,1,2,1,),(1024,128,), *CelebA_size), "CelebAAE19",50,CelebA,Optimizer=Optim4),
+    TrainAE(*get_sym_resnet_ae((3,4,4,8,8,12,12),(3,)*7,(1,2,1,2,1,2,1),(3,)*7,(256,)), "CelebARNAE4",50,CelebA,Optimizer=Optim4),
+    TrainAE(*get_sym_ful_conv_ae2((4,8,12,16,20,24,32),(3,4,3,4,3,4,3),None,(1,2,1,2,1,2,1),(128,)),"CelebAAE22",50,CelebA,Optim4),
+    TrainAE(*get_sym_ful_conv_ae2((4,8,16,24,32),(3,4,3,4,3,),None,(1,2,1,2,1,),(128,)),"CelebAAE23",50,CelebA,Optim4),
+    TrainAE(*get_sym_ful_conv_ae2((4,8,16,24,32),(4,)*5,None,(1,2,1,2,1,),(64,)),"CelebAAE24",50,CelebA,Optim4),
+    TrainAE(*get_sym_ful_conv_ae2((4,8,16,24,32),(4,)*5,None,(1,2,1,2,1,),(256,)),"CelebAAE25",50,CelebA,Optim4),
+
 ]
 
 train_CelebA_vaes = [
@@ -100,23 +122,22 @@ train_CelebA_stacked_aes = [
     (*get_stacked_ful_conv_ae((8,12,16,24,32,44,56,64),(5,3,3,3,3,3,3,3),(1,2,1,2,1,2,1,2),(2048,),*CelebA_size), "CelebASAE1",50,CelebA,Optim1),
 ]
 
-train_CIFAR10_stacked_aes = [
+train_CIFAR10_vaes = [
     
+    (*get_sym_fully_conv_vae((4,5,6,7,),(3,)*4,(1,)*4,(1024,), *CIFAR10_size), "CIFAR10VAE2", 100, CIFAR10,Optim1,1),  # gut!!!
+    (*get_sym_fully_conv_vae((4,5,6,7,),(3,)*4,(1,)*4,(1024,), *CIFAR10_size), "CIFAR10VAE1s", 100, CIFAR10,Optim1,0),  # gut!!!
 ]
 
 
 if __name__ == "__main__":
-    if False:        
-        for E,D,name,epochs,data,Optim in train_CelebA_stacked_aes[-1:]:
-            e,d=E(),D()
-            data_loader = get_data_loader(data)
-            train_stacked_ae(e,d,data_loader,device,name,e.latent_size,epochs,9,Optim)
-        for trainae in train_CelebA_aes[-1:]:
-            trainae.train()
-            del trainae._encoder, trainae._decoder
+    mode = "ae"
+    if mode == "gan":
+        D = get_sym_ful_conv_ae2((4,8,16,24,32,48,64),(4,)*7,None,(1,2,1,2,1,2,1),(32,1),enc_fn=nn.Sigmoid)[0]
+        G = get_sym_ful_conv_ae2((4,8,16,24,32),(4,4,4,4,4),None,(1,2,1,2,1),(256,))[1]
+        d,g = D(),G()
+        train_gan(d,g,"CelebAGAN2",get_data_loader(CelebA,split="train"),get_data_loader(CelebA,split="test"),10,9,Optim4,0,1)
+    elif mode == "ae":
+        for tae in train_CelebA_aes[-2:]:
+            tae.train()
+            del tae._encoder, tae._decoder
             torch.cuda.empty_cache()
-    else:
-        for E,D,name,epochs,data,Optim,loss_type in train_CelebA_vaes[1:]:
-            e,d=E(),D()
-            data_loader = get_data_loader(data)
-            train_vae(e,d,data_loader,device,name, epochs,9,Optim,loss_type=loss_type)

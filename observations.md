@@ -1,0 +1,10 @@
+- pooling layers blur the image. especially at the beginning
+  - try out stride
+  - try to reduce pooling layers
+  - increase channels by factor 4 befor pooling
+- tanh at end of encoder squeezes values in range -1, 1 -> sampling can't handle values outside properly
+    - use Identity
+    - squeeze into range tanh*4
+- latent space directly from conv without dense -> generation even weirder
+    - probably due to spatial correlations in latent space uncaught by sampling
+- 
