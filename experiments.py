@@ -20,6 +20,7 @@ Optim2 = lambda p: optim.lr_scheduler.StepLR(optim.Adam(p, 0.01), step_size=1, g
 Optim3 = lambda p: optim.lr_scheduler.StepLR(optim.SGD(p, 0.001, weight_decay=0.01, momentum=0.9), step_size=1, gamma=0.98)
 Optim4 = lambda p: optim.lr_scheduler.StepLR(optim.Adam(p, 0.01), step_size=1, gamma=0.92)
 Optim5 = lambda p: optim.lr_scheduler.StepLR(optim.Adam(p, 0.001), step_size=1, gamma=0.92)
+Optim6 = lambda p: optim.lr_scheduler.StepLR(optim.Adam(p, 0.0001), step_size=1, gamma=0.92)
 
 mnist_train_aes = [
     TrainAE(MNISTEncoder1, MNISTDecoder1, "dummy", 2, MNIST),
@@ -106,9 +107,11 @@ train_CelebA_aes = [
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,12,16,32),(3,3,3,3,3),(1,2,1,2,1,),(1024,128,), *CelebA_size), "CelebAAE19",50,CelebA,Optimizer=Optim4),
     TrainAE(*get_sym_resnet_ae((3,4,4,8,8,12,12),(3,)*7,(1,2,1,2,1,2,1),(3,)*7,(256,)), "CelebARNAE4",50,CelebA,Optimizer=Optim4),
     TrainAE(*get_sym_ful_conv_ae2((4,8,12,16,20,24,32),(3,4,3,4,3,4,3),None,(1,2,1,2,1,2,1),(128,)),"CelebAAE22",50,CelebA,Optim4),
-    TrainAE(*get_sym_ful_conv_ae2((4,8,16,24,32),(3,4,3,4,3,),None,(1,2,1,2,1,),(128,)),"CelebAAE23",50,CelebA,Optim4),
-    TrainAE(*get_sym_ful_conv_ae2((4,8,16,24,32),(4,)*5,None,(1,2,1,2,1,),(64,)),"CelebAAE24",50,CelebA,Optim4),
-    TrainAE(*get_sym_ful_conv_ae2((4,8,16,24,32),(4,)*5,None,(1,2,1,2,1,),(256,)),"CelebAAE25",50,CelebA,Optim4),
+    TrainAE(*get_sym_ful_conv_ae2((4,8,16,24,32),(3,4,3,4,3,),None,(1,2,1,2,1,),(128,)),"CelebAAE23",50,CelebA,Optim4),  # works
+    TrainAE(*get_sym_ful_conv_ae2((4,8,16,24,32),(4,)*5,None,(1,2,1,2,1,),(64,)),"CelebAAE24",50,CelebA,Optim4),  # works
+    TrainAE(*get_sym_ful_conv_ae2((4,8,16,24,32),(4,)*5,None,(1,2,1,2,1,),(256,)),"CelebAAE25",50,CelebA,Optim4),  # overfitted
+    TrainAE(*get_sym_ful_conv_ae2((4,8,16,24,32),(4,)*5,None,(1,2,1,2,1,),(32,)),"CelebAAE26",50,CelebA,Optim4),  # latent dim too low
+    TrainAE(*get_sym_ful_conv_ae2((4,8,16,24,32),(3,4,3,4,3,),None,(1,2,1,2,1,),(100,),norm_layer=nn.InstanceNorm2d),"CelebAAE27",50,CelebA,Optim4),  # instance norm does not work well
 
 ]
 
@@ -116,28 +119,32 @@ train_CelebA_vaes = [
     (*get_sym_fully_conv_vae((8,12,16,24,32,44,56,64),(5,3,3,3,3,3,3,3),(1,2,1,2,1,2,1,2),(2048,)), "CelebAVAE1",50,CelebA,Optim1,0),
     (*get_sym_fully_conv_vae((8,12,16,24,32,44,56,64),(5,3,3,3,3,3,3,3),(1,2,1,2,1,2,1,2),(2048,)), "CelebAVAE3",50,CelebA,Optim1,1),
     (*get_sym_fully_conv_vae((8,12,16,24,32,44,56,64),(5,3,3,3,3,3,3,3),(1,2,1,2,1,2,1,2),(2048,)), "CelebAVAE2",50,CelebA,Optim1,0),
+    (*get_sym_ful_conv_ae2((4,8,16,24,32),(4,4,4,4,4,),None,(1,2,1,2,1,),(1024,),vae=True), "CelebAVAE5",50,CelebA,Optim6,1)
 ]
 
 train_CelebA_stacked_aes = [
     (*get_stacked_ful_conv_ae((8,12,16,24,32,44,56,64),(5,3,3,3,3,3,3,3),(1,2,1,2,1,2,1,2),(2048,),*CelebA_size), "CelebASAE1",50,CelebA,Optim1),
 ]
 
-train_CIFAR10_vaes = [
-    
+train_CIFAR10_vaes = [    
     (*get_sym_fully_conv_vae((4,5,6,7,),(3,)*4,(1,)*4,(1024,), *CIFAR10_size), "CIFAR10VAE2", 100, CIFAR10,Optim1,1),  # gut!!!
     (*get_sym_fully_conv_vae((4,5,6,7,),(3,)*4,(1,)*4,(1024,), *CIFAR10_size), "CIFAR10VAE1s", 100, CIFAR10,Optim1,0),  # gut!!!
 ]
 
 
 if __name__ == "__main__":
-    mode = "ae"
+    mode = "vae"
     if mode == "gan":
         D = get_sym_ful_conv_ae2((4,8,16,24,32,48,64),(4,)*7,None,(1,2,1,2,1,2,1),(32,1),enc_fn=nn.Sigmoid)[0]
         G = get_sym_ful_conv_ae2((4,8,16,24,32),(4,4,4,4,4),None,(1,2,1,2,1),(256,))[1]
         d,g = D(),G()
-        train_gan(d,g,"CelebAGAN2",get_data_loader(CelebA,split="train"),get_data_loader(CelebA,split="test"),10,9,Optim4,0,1)
+        train_gan(d,g,"CelebAGAN2",get_data_loader(CelebA,split="train"),get_data_loader(CelebA,split="test"),10,9,Optim5,0,1)
     elif mode == "ae":
-        for tae in train_CelebA_aes[-2:]:
+        for tae in train_CelebA_aes[-1:]:
             tae.train()
             del tae._encoder, tae._decoder
             torch.cuda.empty_cache()
+    elif mode == "vae":
+        for E,D,name,epochs,data,Optim,loss_type in train_CelebA_vaes[-1:]:
+            train_vae(E(),D(),get_data_loader(data), device, name, epochs, 9, Optim, loss_type,get_data_loader(data,split="test"))
+            

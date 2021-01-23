@@ -298,12 +298,8 @@ def get_sym_ful_conv_ae2(channels, filter_sizes, pools=None, strides=None, fc_la
                     layers.append(nn.MaxPool2d(pool))
                 layers.append(nn.ReLU())
                 layers.append(norm_layer(new_c))
+            layers.append(nn.Flatten())
             if not self.vae:  # no variation autoencoder
-                if len(fc_layers) == 1:  # no batchnorm or relu on last layer
-                    layers.pop()
-                    layers.pop()
-                    layers.append(enc_fn())
-                layers.append(nn.Flatten())
                 if len(fc_layers) > 1:
                     layers.append(MLP(fc_layers, nn.ReLU, enc_fn))
             else:  # vae
