@@ -6,6 +6,43 @@ from matplotlib import pyplot as plt
 import torch.nn as nn
 import math
 from defaults import CKPT_PATH, device
+import imageio
+import tqdm
+
+
+def sample_pc_grid(latent_size,dim0=0,dim1=1, rand=False, startx=-2, stopx=2, numx=10, starty=-2, stopy=2, numy=10):
+    grid = torch.stack(torch.meshgrid(torch.linspace(startx,stopx,numx+1,),torch.linspace(starty,stopy,numy+1))).view(2,-1).transpose(0,1)
+    batch = torch.zeros((grid.size()[0], latent_size))
+    if rand:
+        batch[:,:] = torch.randn(1,latent_size)
+    batch[:,dim0] = grid[:,0]
+    batch[:,dim1] = grid[:,1]
+    return batch
+
+
+def get_pc_grid_gen_images(decoder, mean, cov,dim0=0,dim1=1,rand=False, startx=-2, stopx=2, numx=10, starty=-2, stopy=2, numy=10):
+    batch = sample_pc_grid(decoder.latent_size,dim0,dim1,rand, startx, stopx, numx, starty, stopy, numy)
+    decoder.eval()
+    images = decoder(normal_to_pc(batch.to(device), mean, cov)).detach().to("cpu")
+    grid = get_grid(images)
+    return grid
+
+
+def imgs_to_gif(inpath, outfile=None, prefix="", start=0, end=None, step=1):
+    if outfile is None:
+        outfile = os.path.join(inpath, "gif.gif")
+    count = len(os.listdir(inpath))
+    if end is None:
+        end = count
+    assert start <= end <= count
+    images = []
+    for i in tqdm.trange(start, end, step):
+        filename = os.path.join(inpath, "{prefix}{i}.png".format(prefix=prefix,i=i))
+        try:
+            images.append(imageio.imread(filename))
+        except:
+            print(filename + " does not exist. Skipped")
+    imageio.mimsave(outfile, images)
 
 
 def param_count(module):
@@ -86,7 +123,8 @@ def save_image(images, img_type, name, epoch):
 
 
 def save_img(img: torch.Tensor, image_path):
-    os.makedirs(os.path.split(image_path)[0], exist_ok=True)
+    if os.path.split(image_path)[0]:
+        os.makedirs(os.path.split(image_path)[0], exist_ok=True)
     if len(img.size()) == 4:
         img = img[0]
     c = img.size()[0]

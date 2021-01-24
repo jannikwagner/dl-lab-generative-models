@@ -69,7 +69,7 @@ class TrainAE:
 
     def make_pca(self):
         assert self._trained
-        pca = latent_space_pca(self.encoder, self.data_loader)
+        pca = latent_space_pca(self.encoder, self.train_loader)
         self._mean, self._cov = pca
         pca_cpu = pca[0].to("cpu"), pca[1].to("cpu")
         torch.save(pca_cpu, os.path.join(CKPT_PATH, self.name, "pca.pth"))

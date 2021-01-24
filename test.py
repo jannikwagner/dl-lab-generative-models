@@ -1,6 +1,6 @@
 from TrainModels import TrainAE
 from datasets import getMNIST, getCIFAR10, getFashionMNIST, get_data_loader
-from defaults import device, MNIST, FashionMNIST, CIFAR10, CelebA, CelebA_size, CIFAR10_size
+from defaults import device, MNIST, FashionMNIST, CIFAR10, CelebA, CelebA_size, CIFAR10_size, CKPT_PATH
 from models.MNIST.Autoencoder import *
 from models.CIFAR10.Autoencoder import *
 from train.Autoencoder import train_autoencoder, train_stacked_ae
@@ -8,9 +8,10 @@ import torch.nn as nn
 from models.VarAE import get_sym_fully_conv_vae
 from models.base import get_sym_resnet_ae, get_sym_ful_conv_ae2
 import time
+import os
 
 from utility import save_model, extract_images_of_models, load_model, latent_space_pca, sample_in_pc, \
-    plot_images2, normal_to_pc, get_sample_k_of_d, labeled_latent_space_pca, param_count, param_print
+    plot_images2, normal_to_pc, get_sample_k_of_d, labeled_latent_space_pca, param_count, param_print, imgs_to_gif
 
 
 def tests():
@@ -48,9 +49,8 @@ def reconstruct(svd):
     return  svd[0]@torch.diag(svd[1])@svd[2].transpose(0,1)
 
 
-def model_summary():
+def model_summary(E,D):
     size = CelebA_size
-    E,D=get_sym_ful_conv_ae2((4,8,12,16,20,24,32),(3,4,3,4,3,4,3),None,(1,2,1,2,1,2,1),(128,))
     e,d=E(),D()
     param_print(e)
     print(param_count(e))
@@ -82,7 +82,6 @@ def test_stacked_ae(e,d):
         print(x.size())
 
 
-
 if __name__ == "__main__":
-    E,D=get_sym_resnet_ae((4,8,12,16,20,24,28,32),(4,)*7,(1,2,1,2,1,2,1),(4,)*7,(256,))
-    e,d=E(),D()
+    path = os.path.join(CKPT_PATH, "CIFAR10AE3", "compressed_images")
+    imgs_to_gif(path)

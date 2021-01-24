@@ -1,6 +1,6 @@
 from TrainModels import TrainAE
 from datasets import getMNIST, getCIFAR10, getFashionMNIST, get_data_loader
-from defaults import device, MNIST, FashionMNIST, CIFAR10, CelebA, CelebA_size, CIFAR10_size
+from defaults import device, MNIST, FashionMNIST, CIFAR10, CelebA, CelebA_size, CIFAR10_size, CKPT_PATH
 from models.MNIST.Autoencoder import *
 from models.CIFAR10.Autoencoder import *
 from train.Autoencoder import train_autoencoder, train_stacked_ae
@@ -10,9 +10,11 @@ import torch.optim as optim
 from models.VarAE import get_sym_fully_conv_vae
 from models.base import get_sym_resnet_ae, get_sym_ful_conv_ae2
 from train.trainGAN import train_gan
+import numpy as np
+import os
 
 from utility import save_model, extract_images_of_models, load_model, latent_space_pca, sample_in_pc, \
-    plot_images2, normal_to_pc, get_sample_k_of_d, labeled_latent_space_pca, param_count, param_print
+    plot_images2, normal_to_pc, get_sample_k_of_d, labeled_latent_space_pca, param_count, param_print, get_pc_grid_gen_images, save_img
 
 
 Optim1 = lambda p: optim.lr_scheduler.StepLR(optim.Adam(p, 0.001), step_size=1, gamma=0.97)
@@ -131,9 +133,14 @@ train_CIFAR10_vaes = [
     (*get_sym_fully_conv_vae((4,5,6,7,),(3,)*4,(1,)*4,(1024,), *CIFAR10_size), "CIFAR10VAE1s", 100, CIFAR10,Optim1,0),  # gut!!!
 ]
 
+def fun(model, d0,d1,name):
+    images = get_pc_grid_gen_images(model.decoder,*model.pca, d0,d1,rand=False)
+    save_img(images, os.path.join(CKPT_PATH, name,f"{name}grid{d0}_{d1}.png"))
+    images = get_pc_grid_gen_images(model.decoder,*model.pca, d0,d1,rand=True)
+    save_img(images, os.path.join(CKPT_PATH, name,f"{name}grid{d0}_{d1}r.png"))
 
 if __name__ == "__main__":
-    mode = "vae"
+    mode = None
     if mode == "gan":
         D = get_sym_ful_conv_ae2((4,8,16,24,32,48,64),(4,)*7,None,(1,2,1,2,1,2,1),(32,1),enc_fn=nn.Sigmoid)[0]
         G = get_sym_ful_conv_ae2((4,8,16,24,32),(4,4,4,4,4),None,(1,2,1,2,1),(256,))[1]
@@ -147,4 +154,28 @@ if __name__ == "__main__":
     elif mode == "vae":
         for E,D,name,epochs,data,Optim,loss_type in train_CelebA_vaes[-1:]:
             train_vae(E(),D(),get_data_loader(data), device, name, epochs, 9, Optim, loss_type,get_data_loader(data,split="test"))
-            
+    
+    for model in train_CelebA_aes + mnist_train_aes+fashionMnist_train_aes+train_cifar10_aes:
+        try:
+            for x in os.listdir(os.path.join(CKPT_PATH, model.name)):
+                if "grid" in x:
+                    os.remove(os.path.join(CKPT_PATH, model.name,x))
+        except:
+            print(model.name)
+        try:
+            print(model.name)
+            torch.cuda.empty_cache()
+            name = model.name
+            path = os.path.join(CKPT_PATH, name, )
+            latent_size = model.encoder.latent_size
+            fun(model,0,1,name)
+            d0 = np.random.randint(0,latent_size)
+            d1 = np.random.randint(0,latent_size)
+            fun(model,d0,d1,name)
+            fun(model,2,3,name)
+        except Exception as e:
+            print(model.name, "failed:", e)
+        finally:
+            del model._decoder, model._encoder
+
+

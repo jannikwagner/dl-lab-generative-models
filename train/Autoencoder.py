@@ -99,6 +99,17 @@ def train_epoch(encoder, decoder, train_loader, device, criterion, normal_loss_f
         scheduler.step()
     return running_loss, running_norm
 
+def forward(inputs, device, encoder, decoder, criterion, normal_loss):
+    inputs = inputs.to(device=device)
+
+    # forward + backward + optimize
+    latent = encoder(inputs)
+    outputs = decoder(latent)
+    loss = criterion(outputs, inputs)
+    norm = torch.mean(torch.square(torch.mean(latent,dim=0)))*normal_loss + torch.mean(torch.square(torch.var(latent,dim=0)-1))*normal_loss
+    loss += norm
+    return loss, norm
+
 def val_epoch(encoder, decoder, val_loader, device, criterion, normal_loss_factor, max_iterations=None):
     if val_loader is None:
         return 0, 0
@@ -120,18 +131,6 @@ def val_epoch(encoder, decoder, val_loader, device, criterion, normal_loss_facto
     running_loss /= (i+1)
     running_norm /= (i+1)
     return running_loss, running_norm
-
-def forward(inputs, device, encoder, decoder, criterion, normal_loss):
-    # get the inputs; data is a list of [inputs, labels]
-    inputs = inputs.to(device=device)
-
-    # forward + backward + optimize
-    latent = encoder(inputs)
-    outputs = decoder(latent)
-    loss = criterion(outputs, inputs)
-    norm = torch.mean(torch.square(torch.mean(latent,dim=0)))*normal_loss + torch.mean(torch.square(torch.var(latent,dim=0)-1))*normal_loss
-    loss += norm
-    return loss, norm
 
 def train_stacked_ae(encoder: nn.Module, decoder: nn.Module, train_loader, device, name, latent_size=4,  epochs=50, num_imgs=9, Optimizer=optim.Adam):
     train_losses = []
