@@ -31,23 +31,6 @@ class Interpolate(nn.Module):
         return x
 
 
-class MLP(nn.Module):
-    def __init__(self, layer_sizes, fn=nn.ReLU, end_fn=nn.ReLU):
-        super().__init__()
-        layers = []
-        for i, (s1, s2) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
-            layers.append(nn.Linear(s1, s2))
-            if i != len(layer_sizes) - 2:
-                layers.append(fn())
-                layers.append(nn.BatchNorm1d(s2))
-            else:
-                layers.append(end_fn())
-        self.model = nn.Sequential(*layers)
-
-    def forward(self, x):
-        return self.model(x)
-
-
 class ConvBNActivation(nn.Sequential):
     def __init__(
         self,
@@ -260,11 +243,26 @@ class MobileNetV2(nn.Module):
         return self._forward_impl(x)
 
 
-if __name__ == "__main__":
-    MobileNetV2()
+class MLP(nn.Module):
+    def __init__(self, layer_sizes, fn=nn.ReLU, end_fn=nn.ReLU):
+        super().__init__()
+        layers = []
+        for i, (s1, s2) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
+            layers.append(nn.Linear(s1, s2))
+            if i != len(layer_sizes) - 2:
+                layers.append(fn())
+                layers.append(nn.BatchNorm1d(s2))
+            else:
+                layers.append(end_fn())
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
 
 
 def get_sym_ful_conv_ae2(channels, filter_sizes, pools=None, strides=None, fc_layers=(), img_size=CelebA_size, norm_layer=nn.BatchNorm2d, enc_fn=nn.Identity, vae=False):
+    """
+    """
     c,h,w=img_size
     if pools is None:
         pools = (1,)*len(channels)
@@ -303,7 +301,7 @@ def get_sym_ful_conv_ae2(channels, filter_sizes, pools=None, strides=None, fc_la
                 if len(fc_layers) > 1:
                     layers.append(MLP(fc_layers, nn.ReLU, enc_fn))
             else:  # vae
-                if len(fc_layers) <= 2:  # if 1 or 2 -> we need fc layer anyways
+                if len(fc_layers) <= 2:  # if 1 or 2 -> fc layer needed anyways
                     self.encoded_size = fc_layers[0]
                 if len(fc_layers) >= 3:  # last fully connected layer will not be part of the MLP, instead two heads mean and log_var
                     self.encoded_size = fc_layers[-2]
@@ -338,7 +336,7 @@ def get_sym_ful_conv_ae2(channels, filter_sizes, pools=None, strides=None, fc_la
                     layers.append(nn.ReLU())
                     layers.append(norm_layer(new_c))
             layers.append(nn.Tanh())
-            layers.append(Interpolate((h, w)))
+            layers.append(Interpolate((h, w)))  # 
             self.model = nn.Sequential(*layers)
 
         def forward(self, x):
@@ -402,4 +400,3 @@ def get_sym_resnet_ae(channels, filter_sizes, strides=None, expand_ratios=None, 
             return self.model(x)
 
     return Encoder, Decoder
-

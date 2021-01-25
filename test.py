@@ -82,6 +82,13 @@ def test_stacked_ae(e,d):
         print(x.size())
 
 
+def get_gifs(name):
+    imgs_to_gif(os.path.join(CKPT_PATH, name, "compressed_images"), os.path.join(CKPT_PATH, name, name+"c.gif"))
+    imgs_to_gif(os.path.join(CKPT_PATH, name, "generated_images"),os.path.join(CKPT_PATH, name, name+"g.gif"))
+    imgs_to_gif(os.path.join(CKPT_PATH, name, "pca_gen_images"), os.path.join(CKPT_PATH, name, name+"pg.gif"))
+    imgs_to_gif(os.path.join(CKPT_PATH, name, "labeled_pca_gen_images", "0"), os.path.join(CKPT_PATH, name,name+"lpg0.gif"))
+    imgs_to_gif(os.path.join(CKPT_PATH, name, "labeled_pca_gen_images", "1"), os.path.join(CKPT_PATH, name,name+"lpg1.gif"))
+
+
 if __name__ == "__main__":
-    path = os.path.join(CKPT_PATH, "CIFAR10AE3", "compressed_images")
-    imgs_to_gif(path)
+    pass

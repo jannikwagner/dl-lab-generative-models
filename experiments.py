@@ -51,8 +51,8 @@ train_cifar10_aes = [
     TrainAE(CIFAR10Encoder5, CIFAR10Decoder5, "CIFAR10AE5", 50, CIFAR10),
     TrainAE(CIFAR10Encoder6, CIFAR10Decoder6, "CIFAR10AE6", 50, CIFAR10),
     TrainAE(CIFAR10Encoder7, CIFAR10Decoder7, "CIFAR10AE7", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE8", 100, CIFAR10),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(5,3,3),(2,1,1),100), "CIFAR10AE9", 100, CIFAR10),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE8", 100, CIFAR10),  # blurry, generation useless
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(5,3,3),(2,1,1),100), "CIFAR10AE9", 100, CIFAR10),  # blurry, generation useless
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(5,3,3,3,3),(2,1,1,1,1),100), "CIFAR10AE10", 100, CIFAR10),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,12,16,20,24,28,32,36,40),(3,)*10,(1,)*10,100), "CIFAR10AE11", 100, CIFAR10),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64,128),(3,)*6,(1,1,2,1,1,2),100), "CIFAR10AE12", 100, CIFAR10),
@@ -65,6 +65,7 @@ train_cifar10_aes = [
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,5,7,9,11),(1,1,1,1,1),256,enc_fn=nn.Identity), "CIFAR10AE19s", 10, CIFAR10),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,5,7,9,11),(1,1,1,1,1),256,enc_fn=nn.Identity), "CIFAR10AE19", 100, CIFAR10),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,3,5,7,9),(1,1,1,1,1),512), "CIFAR10AE20", 100, CIFAR10),
+
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16,32,64),(3,3,5,7,9),(1,1,1,1,1),512), "CIFAR10AE21", 100, CIFAR10, label=1),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE22", 1000, CIFAR10),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,16),(3,3,3),(1,1,1),100), "CIFAR10AE23", 1000, CIFAR10, label=2),
@@ -75,10 +76,10 @@ train_cifar10_aes = [
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,),(3,),(1,),(2048,1536,1024), *CIFAR10_size), "CIFAR10NAE1", 100, CIFAR10,Optimizer=Optim1,normal_loss=1/10),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,12,16,32),(3,3,3,3,),(2,1,1,1,),(2048,1024), *CIFAR10_size), "CIFAR10AE28", 100, CIFAR10,Optimizer=Optim2),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,5,6,7,8,9,10,11,),(3,3,3,3,3,3,3,3,),(1,)*8,(2048,1024), *CIFAR10_size), "CIFAR10AE29", 100, CIFAR10,Optimizer=Optim2),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,5,6,7,),(3,)*4,(1,)*4,(1024,), *CIFAR10_size), "CIFAR10AE30", 100, CIFAR10,Optimizer=Optim2),  # gut!!!
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,5,6,7,),(3,)*4,(1,)*4,(1024,), *CIFAR10_size), "CIFAR10AE30", 100, CIFAR10,Optimizer=Optim2),  # gute reconstruction
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,512,1024),(3,5,3,3,3,3,3,3,),(1,2,1,1,1,1,1,1),(), *CIFAR10_size), "CIFAR10AE33", 100, CIFAR10,Optimizer=Optim2),  # up to 1 pixel no dense leayer?
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,512,1024),(3,5,3,3,3,3,3,3,),(1,2,1,1,1,1,1,1),(1024,), *CIFAR10_size), "CIFAR10AE32", 100, CIFAR10,Optimizer=Optim2), # up to 1 pixel
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,512,1024),(3,)*8,(1,2,1,1,1,1,1,1),(1024,), *CIFAR10_size), "CIFAR10AE31", 100, CIFAR10,Optimizer=Optim2),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,512,1024),(3,)*8,(1,2,1,1,1,1,1,1),(1024,), *CIFAR10_size), "CIFAR10AE31", 100, CIFAR10,Optimizer=Optim2),  # latent_size probably way too large
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,512,1024),(11,8,5,3,3,3,3,3,),(1,1,1,1,1,1,1,1),(1024,), *CIFAR10_size), "CIFAR10AE34", 100, CIFAR10,Optimizer=Optim2),
 
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,5,6,7,),(3,)*4,(1,)*4,(1024,), *CIFAR10_size), "CIFAR10NAE1", 100, CIFAR10,Optimizer=Optim1, normal_loss=1),  # gut!!!]
@@ -96,7 +97,7 @@ train_CelebA_aes = [
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,12),(3,3,3,3),(2,3,3), (),*CelebA_size),"CelebA10",50,CelebA),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,12,16,20,24,28,32),(3,5,3,5,3,5,3,5),(1,2,1,2,1,2,1,2),(1024,1024), *CelebA_size),"CelebA9",100,CelebA),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((4,8,12,16,20,24,28,32,36,40),(3,5,3,3,5,3,3,5,3,3),(1,1,2,1,1,2,1,1,2,1),(), *CelebA_size),"CelebA11",100,CelebA),
-    TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,32),(3,3,3,3,3,3,3),(1,2,1,2,1,2,1),(1024,), *CelebA_size),"CelebA12",50,CelebA),
+    TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,32),(3,3,3,3,3,3,3),(1,2,1,2,1,2,1),(1024,), *CelebA_size),"CelebA12",50,CelebA),  # bad idea
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,32),(3,3,3,3,3,3,3),(1,2,1,2,1,2,1),(1024,), *CelebA_size),"CelebA13",50,CelebA,Optimizer=Optim1),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,32),(3,3,3,3,3,3,3),(1,2,1,2,1,2,1),(1024,), *CelebA_size),"CelebA14",50,CelebA,Optimizer=Optim2),
     TrainAE(*get_symmetric_fully_convolutional_autoencoder((8,16,32,64,128,256,32),(3,3,3,3,3,3,3),(1,2,1,2,1,2,1),(1024,), *CelebA_size),"CelebA15",50,CelebA,Optimizer=Optim3),
@@ -139,7 +140,7 @@ def fun(model, d0,d1,name):
     images = get_pc_grid_gen_images(model.decoder,*model.pca, d0,d1,rand=True)
     save_img(images, os.path.join(CKPT_PATH, name,f"{name}grid{d0}_{d1}r.png"))
 
-if __name__ == "__main__":
+def train():
     mode = None
     if mode == "gan":
         D = get_sym_ful_conv_ae2((4,8,16,24,32,48,64),(4,)*7,None,(1,2,1,2,1,2,1),(32,1),enc_fn=nn.Sigmoid)[0]
@@ -154,14 +155,9 @@ if __name__ == "__main__":
     elif mode == "vae":
         for E,D,name,epochs,data,Optim,loss_type in train_CelebA_vaes[-1:]:
             train_vae(E(),D(),get_data_loader(data), device, name, epochs, 9, Optim, loss_type,get_data_loader(data,split="test"))
-    
+
+def get_grids():
     for model in train_CelebA_aes + mnist_train_aes+fashionMnist_train_aes+train_cifar10_aes:
-        try:
-            for x in os.listdir(os.path.join(CKPT_PATH, model.name)):
-                if "grid" in x:
-                    os.remove(os.path.join(CKPT_PATH, model.name,x))
-        except:
-            print(model.name)
         try:
             print(model.name)
             torch.cuda.empty_cache()
@@ -178,4 +174,5 @@ if __name__ == "__main__":
         finally:
             del model._decoder, model._encoder
 
-
+if __name__ == "__main__":
+    pass
